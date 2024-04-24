@@ -282,8 +282,8 @@ function events:UNIT_SPELLCAST_SENT(unit, spell, ...)
 	if spell == autoShot then
 		if failWhen then
 			-- fail occurs at end of auto cast, so clip is full auto cast plus however long it's been since the fail
-			log(string.format("Line-of-sight clipped Auto Shot by %.2f sec",autoCast + now - failWhen))
-			clipped = clipped + autoCast + now - failWhen
+			log(string.format("Line-of-sight clipped Auto Shot by %.2f sec",autoCast + now - failWhen - latency))
+			clipped = clipped + autoCast + now - failWhen - latency
 			failWhen = nil
 		end
 		StartAutoShot(now)
@@ -310,8 +310,15 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 	if unit ~= "player" then return end
 	local now = GetTime()
 	if spell == autoShot then
+		if failWhen then
+			-- this case only happens when line-of-sight has been blocked and then regained
+			-- fail occurs at end of auto cast, so clip is full auto cast plus however long it's been since the fail
+			-- however in this case the success also occurs at the end so the auto cast duration can be ignored
+			log(string.format("Line-of-sight clipped Auto Shot by %.2f sec",autoCast + now - failWhen))
+			clipped = clipped + now - failWhen			
+			failWhen = nil
+		end
 		debug(spell,string.format("%.2f expected %.2f",now - autoStart,autoEnd - autoStart))
-		failWhen = nil
 		lastAutoStart = autoStart
 		lastAutoEnd = autoEnd
 		autoEnd = now + UnitRangedDamage("player")
