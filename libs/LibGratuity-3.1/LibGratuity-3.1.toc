@@ -1,0 +1,8 @@
+﻿## Interface: 20300
+## LoadOnDemand: 1
+## Title: Lib: Gratuity-3.1
+## Notes: Tooltip scanning library. Modified to add Gsub function.
+## Author: Tekkub Stoutwrithe / Dulla
+
+LibStub\LibStub.lua
+lib.xml
