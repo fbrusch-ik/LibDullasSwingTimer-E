@@ -311,6 +311,7 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 	local now = GetTime()
 	if spell == autoShot then
 		debug(spell,string.format("%.2f expected %.2f",now - autoStart,autoEnd - autoStart))
+		failWhen = nil
 		lastAutoStart = autoStart
 		lastAutoEnd = autoEnd
 		autoEnd = now + UnitRangedDamage("player")
