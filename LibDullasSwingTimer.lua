@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibDullasSwingTimer", 2
+local MAJOR, MINOR = "LibDullasSwingTimer", 4
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then
 	return
@@ -27,10 +27,10 @@ LDST = lib
 -- logging functions
 lib.debug = false
 lib.log = false
-local t0 = nil
+local timeStart = GetTime()
 function TimeStamp()
-	t0 = t0 or GetTime()
-	local now = GetTime() - t0
+	timeStart = timeStart or GetTime()
+	local now = GetTime() - timeStart
 	local seconds = floor(now)%60
 	local minutes = floor(now/60)%60
 	local hours = floor(now/60/60)%24
@@ -63,9 +63,6 @@ frame:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
 
 frame:RegisterEvent("UNIT_SPELLCAST_STOP")
 frame:RegisterEvent("UNIT_SPELLCAST_START")
-
-frame:RegisterEvent("UNIT_SPELLCAST_FAILED_QUIET")
-frame:RegisterEvent("UI_ERROR_MESSAGE")
 
 local events = {}
 
@@ -109,6 +106,8 @@ local castStarted = nil
 -- track clipping of auto shot cast
 local moveWhen = nil -- time last move was detected
 local failWhen = nil -- time auto shot got a UNIT_SPELLCAST_FAILED
+local ignoreNextSent = 0
+local ignoreFail = false
 local clipped = 0 -- cumulative clipping in seconds of current auto shot cast
 local lastClipped = 0 -- total clipping of last auto shot cast
 
@@ -252,18 +251,43 @@ function events:PLAYER_EQUIPMENT_CHANGED(slot)
 	end
 end
 
+local stoppedWhen = nil
+
 function events:START_AUTOREPEAT_SPELL(...)
 	local now = GetTime()
 	isAuto = true
-	failWhen = nil
-	StartAutoShot(now)
+	if autoStart and now < autoStart then
+		debug("Restarted during cooldown")
+		ignoreNextSent = now + 0.005
+	elseif autoStart and now < autoEnd then
+		debug("Restarted during casting")
+		log(string.format("Target change clipped %.2f sec", now - autoStart))
+		clipped = clipped + now - autoStart
+		ignoreNextSent = now + 0.005
+		autoStart = nil
+		autoEnd = nil
+	elseif stoppedWhen and now - stoppedWhen < 0.1 then
+		debug("Restarted outside auto shot")
+		autoStart = nil
+		autoEnd = nil
+	else
+		autoStart = nil
+		autoEnd = nil
+		lastAutoStart = nil
+		lastAutoEnd = nil
+		failWhen = nil
+		timeStart = now
+		debug("Started")
+	end
 end
 
 function events:STOP_AUTOREPEAT_SPELL(...)
 	local now = GetTime()
 	isAuto = false
 	failWhen = nil
+	stoppedWhen = now
 	StopAutoShot(now)
+	debug("Stopped")
 end
 
 function events:PLAYER_STARTED_MOVING()
@@ -275,7 +299,7 @@ function events:PLAYER_STOPPED_MOVING()
 	local now = GetTime()
 	moveWhen = nil
 	if isAuto and autoStart <= now and not failWhen then
-		log(string.format("Movement clipped Auto Shot by %.2f sec",now - autoStart))
+		log(string.format("Movement clipped %s by %.2f sec",autoShot,now - autoStart))
 		clipped = clipped + now - autoStart
 		StartAutoShot(now)
 	end
@@ -285,9 +309,15 @@ function events:UNIT_SPELLCAST_SENT(unit, spell, ...)
 	if unit ~= "player" then return end
 	local now = GetTime()
 	if spell == autoShot then
+		if now < ignoreNextSent then
+			ignoreFail = true
+			return
+		end
+		ignoreFail = false
 		if failWhen then
-			-- fail occurs at end of auto cast, so clip is full auto cast plus however long it's been since the fail
-			log(string.format("Player facing clipped Auto Shot by %.2f sec",autoCast + now - failWhen - latency))
+			-- this case only happens when player has been facing away from the target and now again faces the target
+			-- then the fail occurred at the end of auto cast, so clip is full auto cast plus however long it's been since the fail
+			log(string.format("Player facing clipped %s by %.2f sec",autoShot,autoCast + now - failWhen - latency))
 			clipped = clipped + autoCast + now - failWhen - latency
 			failWhen = nil
 		end
@@ -306,7 +336,7 @@ function events:UNIT_SPELLCAST_START(unit, spell, ...)
 	if not castStarted then
 		castStarted = now
 		latency = castStarted - castSent
-		debug("Latency",latency)
+		debug(string.format("Latency %d ms",latency*1000))
 	end
 	StopAutoShot(now)
 end
@@ -317,15 +347,15 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 	if spell == autoShot then
 		if failWhen then
 			-- this case only happens when line-of-sight has been blocked and then regained
-			-- fail occurs at end of auto cast, so clip is full auto cast plus however long it's been since the fail
-			-- however in this case the success also occurs at the end so the auto cast duration can be ignored
-			log(string.format("Line of sight clipped Auto Shot by %.2f sec",now - failWhen))
+			-- then the fail occurred at the end of auto cast, so clip is just however long it's been since the fail
+			log(string.format("Line of sight clipped %s by %.2f sec",autoShot,now - failWhen))
 			clipped = clipped + now - failWhen
 			failWhen = nil
 		end
-		debug(spell,string.format("%.2f expected %.2f",now - autoStart,autoEnd - autoStart))
-		lastAutoStart = autoStart
-		lastAutoEnd = autoEnd
+		log(spell,string.format("%.2f sec",now - autoStart,latency*1000))
+		-- TODO: in most cases latency could be set from now - autoEnd, but i'm not 100% sure on that; sometimes this value will be negative
+		lastAutoEnd = now
+		lastAutoStart = lastAutoEnd - autoCast
 		autoEnd = now + UnitRangedDamage("player")
 		autoStart = autoEnd - autoCast
 		lastClipped = clipped
@@ -339,9 +369,9 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 	if not castStarted then
 		castStarted = castSent
 	end
-	log(spell,string.format("%.2f sec",now - castStarted))
+	log(spell,string.format("%.2f sec (latency %d ms)",now - castStarted,latency*1000))
 	if isAuto and autoStart < now then
-		log(spell,string.format("clipped Auto Shot by %.2f sec",now - autoStart))
+		log(spell,string.format("clipped %s by %.2f sec",autoShot,now - autoStart))
 		clipped = clipped + now - autoStart
 	end
 	if isAuto then
@@ -379,7 +409,7 @@ function events:UNIT_SPELLCAST_FAILED(unit, spell, ...)
 	local now = GetTime()
 	if isAuto then
 		if spell == autoShot then
-			if not failWhen then
+			if not failWhen and not ignoreFail then
 				failWhen = now
 			end
 			return
