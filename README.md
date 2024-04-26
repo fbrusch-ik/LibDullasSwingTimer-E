@@ -138,7 +138,7 @@ Intended for integration into WeakAuras this returns the `duration, expiration` 
 function LDST:GetRangedBaseSpeed()
 ```
 
-This information is not available in the WoW API so this function wraps an on-demand hidden tooltip scanner.
+This information is not available in the WoW API so this function wraps an on-demand hidden tooltip scanner. Since the tooltip only has two significant digits, this results in slightly inaccurate results.
 
 ## GetHaste()
 ```lua
@@ -148,7 +148,7 @@ This information is not available in the WoW API so this function wraps an on-de
 function LDST:GetHaste()
 ```
 
-This information is not available in the WoW 3.3.5 API, so this function calculates haste based on what the base weapon speed is versus the current ranged speed.
+This information is not available in the WoW 3.3.5 API, so this function calculates haste based on what the base weapon speed is versus the current ranged speed. Due to the inaccuracy of determining base weapon speed errors will accrue in the 4th decimal place (eg. with haste = 0.1234 = 12.34% you can't be certain of the 0.0004 = 0.04% part). This can cause slight jerks when recalculating auto shot cooldown, but it's accurate enough for useful real-time displays.
 
 ## GetSpellInfo(idOrName)
 ```lua
