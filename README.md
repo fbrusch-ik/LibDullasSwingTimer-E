@@ -1,5 +1,5 @@
 # LibDullasSwingTimer
-Provides functions for ranged swing timer and haste calculations for Project Epoch server (WoW client 3.3.5). Intended for WeakAuras integration.
+This library provides functions for ranged swing timer and haste calculations for Project Epoch server (WoW client 3.3.5). Intended for WeakAuras integration.
 
 This provides pretty accurate ranged swing timer values for hunters that respond to the most relevant things, like player movement, line-of-sight interruptions, target changes, and dynamically changing haste values from any source. It is much more accurate than the built-in WeakAuras swing timer.
 
@@ -24,6 +24,8 @@ For a super quick start just install the [WeakAuras](https://felbite.com/addon/4
 ```
 
 # WeakAuras Walk Through
+To better understand how this addon works and interacts with WeakAuras follow the instructions below.
+
 Create two new progress bar auras, one for the Auto Shot cast bar and one for the Auto Shot cooldown time. I like to make the first one red and right-to-left, and the second one white and right-to-left inverse.
 
 ## Auto Shot Cast Bar
@@ -69,12 +71,14 @@ This sets the Auto Shot cooldown bar up to follow LibDullasSwingTimer notion of 
 For more advanced setup take a look at the above WeakAuras import and specifically look in the *Animations | Main | Fade | Custom Function* box.
 
 # API
+To use this addon to it's fullest potential the full API is listed here. This includes the functions intended to use from within WeakAuras, but other addons that offer LUA integration can also access these.
+
 Either access through the global `LDST` object or get a reference via `LibStub("LibDullasSwingTimer")`.
 
 ## GetLatency()
 ```lua
 -- return best-guess latency in seconds
-function lib:GetLatency()
+function LDST:GetLatency()
 ```
 
 Each time a spell is cast the latency is recorded. This function simply returns the last value.
@@ -82,8 +86,8 @@ Each time a spell is cast the latency is recorded. This function simply returns 
 ## GetClipped()
 ```lua
 -- returns how much of the currently casting or last casted auto shot was clipped in seconds
--- (both movement clipping and cast clipping is combined)
-function lib:GetClipped(now)
+-- (all sources of clipping are combined)
+function LDST:GetClipped()
 ```
 
 Intended for a real-time display this sums up how much clipping from all sources happened to the current or last fired auto shot.
@@ -91,8 +95,7 @@ Intended for a real-time display this sums up how much clipping from all sources
 ## IsCastingAutoShot()
 ```lua
 -- returns true if currently casting auto shot
--- parameter is optional, defaults to GetTime()
-function lib:IsCastingAutoShot(now)
+function LDST:IsCastingAutoShot()
 ```
 
 Intended for a real-time display this is true if Auto Shot is in the 0.5 sec cast phase.
@@ -100,8 +103,7 @@ Intended for a real-time display this is true if Auto Shot is in the 0.5 sec cas
 ## IsAutoShotCooldown()
 ```lua
 -- returns true if auto shot is on cooldown
--- parameter is optional, defaults to GetTime()
-function lib:IsAutoShotCooldown(now)
+function LDST:IsAutoShotCooldown()
 ```
 
 Intended for a real-time display this is true if Auto Shot is currently on cooldown after the 0.5 sec cast. Will stay true even after Auto Shot is stopped until the last cooldown has expired.
@@ -109,29 +111,26 @@ Intended for a real-time display this is true if Auto Shot is currently on coold
 ## WeakAurasAutoShotCast()
 ```lua
 -- returns duration and end time for auto shot cast (for easy WeakAuras integration)
--- parameter is optional, defaults to GetTime()
-function lib:WeakAurasAutoShotCast(now)
+function LDST:WeakAurasAutoShotCast()
 ```
 
-Intended for integration into WeakAuras this returns the `duration, expiration` format for the Auto Shot cast time that WeakAuras expect in the Trigger | Custom | Duration Info function.
+Intended for integration into WeakAuras this returns the `duration, expiration` format for the Auto Shot cast time that WeakAuras expect in the _Trigger | Custom | Duration Info_ function.
 
 ## WeakAurasAutoShotCooldown()
 ```lua
 -- returns duration and end time for auto shot cooldown (for easy WeakAuras integration)
--- parameter is optional, defaults to GetTime()
-function lib:WeakAurasAutoShotCooldown(now)
+function LDST:WeakAurasAutoShotCooldown()
 ```
 
-Intended for integration into WeakAuras this returns the `duration, expiration` format for the Auto Shot cooldown period that WeakAuras expect in the Trigger | Custom | Duration Info function.
+Intended for integration into WeakAuras this returns the `duration, expiration` format for the Auto Shot cooldown period that WeakAuras expect in the _Trigger | Custom | Duration Info_ function.
 
 ## WeakAurasFullSwingTimer()
 ```lua
--- returns duration and time for the full auto shot cycle from firing to firing (for easy WeakAuras integration)
--- parameter is optional, defaults to GetTime()
-function lib:WeakAurasFullSwingTimer(now)
+-- returns duration and end time for the full auto shot cycle from firing to firing (for easy WeakAuras integration)
+function LDST:WeakAurasFullSwingTimer()
 ```
 
-Intended for integration into WeakAuras this returns the `duration, expiration` format more similar to the WeakAuras built-in swing timer, ie. timed from firing to next fire, but with the benefits of LDST updating for haste etc.
+Intended for integration into WeakAuras this returns the `duration, expiration` format that WeakAuras expect in the _Trigger | Custom | Duration Info_ function. This variant follows the full swing from fire to fire, similar to WeakAuras built-in swing timer, if you prefer a combined readout, but with the benefits of LDST handling clipping, changing haste values, etc.
 
 ## GetRangedBaseSpeed()
 ```lua
@@ -146,16 +145,16 @@ This information is not available in the WoW API so this function wraps an on-de
 -- returns current haste, based on a calculation of base weapon speed over current speed
 -- (returns 0 if unable to determine haste, eg. if no ranged weapon is equipped)
 -- (not a percentage, so no need to divide by 100)
-function lib:GetHaste()
+function LDST:GetHaste()
 ```
 
-This information is not available in the old WoW API, so this function calculates haste based on what the base weapon speed is versus the current ranged speed.
+This information is not available in the WoW 3.3.5 API, so this function calculates haste based on what the base weapon speed is versus the current ranged speed.
 
 ## GetSpellInfo(idOrName)
 ```lua
 -- a patched version of the Blizzard API GetSpellInfo() function
 -- adjusts cast time of hunter casts based on current Epoch server weirdness
-function lib:GetSpellInfo(idOrName)
+function LDST:GetSpellInfo(idOrName)
 ```
 
 Hopefully this function will get removed if/when Project Epoch figures out the bug in the tooltip vs actual cast times of hunter spells.
