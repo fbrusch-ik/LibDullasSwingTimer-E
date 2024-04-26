@@ -126,7 +126,7 @@ Intended for integration into WeakAuras this returns the `duration, expiration` 
 
 ## WeakAurasFullSwingTimer()
 ```lua
--- returns duration and end time for the full auto shot cycle from firing to firing (for easy WeakAuras integration)
+-- returns duration and end time for the full auto shot cycle (for easy WeakAuras integration)
 function LDST:WeakAurasFullSwingTimer()
 ```
 
