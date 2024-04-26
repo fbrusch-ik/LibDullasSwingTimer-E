@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibDullasSwingTimer", 4
+local MAJOR, MINOR = "LibDullasSwingTimer", 5
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then
 	return
@@ -166,7 +166,10 @@ end
 -- (both movement clipping and cast clipping is combined)
 function lib:GetClipped(now)
 	now = now or GetTime()
-	if autoStart ~= nil and now < autoStart then
+	if not self:IsCastingAutoShot(now) and not self:IsAutoShotCooldown(now) then
+		return 0
+	end
+	if now < autoStart then
 		return lastClipped
 	end
 	return clipped
@@ -276,6 +279,7 @@ function events:START_AUTOREPEAT_SPELL(...)
 		lastAutoStart = nil
 		lastAutoEnd = nil
 		failWhen = nil
+		clipped = 0
 		timeStart = now
 		debug("Started")
 	end
@@ -454,3 +458,65 @@ frame:SetScript("OnUpdate", function(...)
 		lastHaste = newHaste
 	end
 end)
+
+-- helper function for WeakAuras frame update (eg. for use in fake fade animation)
+-- given arua_env from WeakAuras context and a spell name or id, as well as 
+-- indices of tick-, label- and lag-subregions, will update those sub-regions:
+-- all are placed using the cast time of the given spell, additionally
+-- * tick is sized by the latency
+-- * label text is set to the spell name
+-- * lag text is set to reflect current latency
+-- omit or pass nil for regions you do not wish to update
+function lib:WeakAurasUpdateSpell(aura_env, spell, tickRegion, labelRegion, lagRegion)
+	local now = GetTime()
+	local duration, expiration = self:WeakAurasAutoShotCooldown(now)
+	if duration <= 0 then return end
+	local region = WeakAuras.GetRegion(aura_env.id)
+	local tick = region.subRegions[tickRegion]
+	local label = region.subRegions[labelRegion]
+	local label = region.subRegions[labelRegion]
+	local lag = region.subRegions[lagRegion]
+	if not tick and not label and not lag then return end
+	local name,_,_,_,_,_,time = self:GetSpellInfo(spell)
+	if name and time then
+		time = time * 0.001
+		local width = region.bar:GetWidth()
+		local latency = self:GetLatency()
+		local thickness = max(2,width * latency / duration)
+		local position = time + (thickness * duration / width)*0.5
+		local visible = expiration - now > position
+		if tick then
+			tick:SetTickThickness(thickness)
+			tick:SetTickPlacement(position)
+			tick:SetVisible(visible)
+		end
+		if label then
+			label.text:SetText(name)
+			if region.orientation == "HORIZONTAL" then
+				label:SetXOffset(width * time / duration)
+			elseif region.orientation == "HORIZONTAL_INVERSE" then
+				label:SetXOffset(-width * time / duration)
+			end
+			label:SetVisible(visible)
+		end
+		if lag then
+			lag.text:SetText(string.format("%d ms", latency*1000))
+			if region.orientation == "HORIZONTAL" then
+				lag:SetXOffset(width * time / duration)
+			elseif region.orientation == "HORIZONTAL_INVERSE" then
+				lag:SetXOffset(-width * time / duration)
+			end
+			lag:SetVisible(visible)
+		end
+	else
+		if tick then
+			tick:SetVisible(false)
+		end
+		if label then
+			label:SetVisible(false)
+		end
+		if lag then
+			lag:SetVisible(false)
+		end
+	end
+end

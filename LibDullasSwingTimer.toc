@@ -4,7 +4,7 @@
 ## Notes: Provides functions for ranged swing timer and haste calculations for Project Epoch server. Intended for WeakAuras integration.
 
 ## Author: Dulla
-## Version: 0.4
+## Version: 0.5
 
 libs\LibStub\LibStub.lua
 libs\LibGratuity-3.1\lib.xml
