@@ -1,9 +1,11 @@
 # LibDullasSwingTimer
 Provides functions for ranged swing timer and haste calculations for Project Epoch server (WoW client 3.3.5). Intended for WeakAuras integration.
 
-This provides pretty accurate ranged swing timer values for hunters that respond to the most relevant things, like player movement, line-of-sight interruptions, and dynamically changing haste values from any source. It is much more accurate than the built-in WeakAuras swing timer.
+This provides pretty accurate ranged swing timer values for hunters that respond to the most relevant things, like player movement, line-of-sight interruptions, target changes, and dynamically changing haste values from any source. It is much more accurate than the built-in WeakAuras swing timer.
 
-There is also some Project Epoch specific workarounds that can hopefully be removed in time when the bugs are fixed on the server side.
+It can also report exactly how much Auto Shot is clipped by player actions like movement, facing, target changes, etc. This can also be integrated in a WeakAuras display.
+
+There is also some Project Epoch specific workarounds that can hopefully be removed when the bugs are fixed on the server side.
 
 This addon does not provide any UI however. You need something else for that, eg. WeakAuras.
 
@@ -64,33 +66,6 @@ For more advanced setup take a look at the above WeakAuras import and specifical
 
 ## API
 Either access through the global `LDST` object or get a reference via `LibStub("LibDullasSwingTimer")`.
-
-### GetRangedBaseSpeed()
-```lua
--- returns the base speed of the currently equipped ranged weapon in seconds
-function LDST:GetRangedBaseSpeed()
-```
-
-This information is not available in the WoW API so this function wraps an on-demand hidden tooltip scanner.
-
-### GetHaste()
-```lua
--- returns current haste, based on a calculation of base weapon speed over current speed
--- (returns 0 if unable to determine haste, eg. if no ranged weapon is equipped)
--- (not a percentage, so no need to divide by 100)
-function lib:GetHaste()
-```
-
-This information is not available in the old WoW API, so this function calculates haste based on what the base weapon speed is versus the current ranged speed.
-
-### GetSpellInfo(idOrName)
-```lua
--- a patched version of the Blizzard API GetSpellInfo() function
--- adjusts cast time of hunter casts based on current Epoch server weirdness
-function lib:GetSpellInfo(idOrName)
-```
-
-Hopefully this function will get removed if/when Project Epoch figures out the bug in the tooltip vs actual cast times of hunter spells.
 
 ### GetLatency()
 ```lua
@@ -153,3 +128,30 @@ function lib:WeakAurasFullSwingTimer(now)
 ```
 
 Intended for integration into WeakAuras this returns the `duration, expiration` format more similar to the WeakAuras built-in swing timer, ie. timed from firing to next fire, but with the benefits of LDST updating for haste etc.
+
+### GetRangedBaseSpeed()
+```lua
+-- returns the base speed of the currently equipped ranged weapon in seconds
+function LDST:GetRangedBaseSpeed()
+```
+
+This information is not available in the WoW API so this function wraps an on-demand hidden tooltip scanner.
+
+### GetHaste()
+```lua
+-- returns current haste, based on a calculation of base weapon speed over current speed
+-- (returns 0 if unable to determine haste, eg. if no ranged weapon is equipped)
+-- (not a percentage, so no need to divide by 100)
+function lib:GetHaste()
+```
+
+This information is not available in the old WoW API, so this function calculates haste based on what the base weapon speed is versus the current ranged speed.
+
+### GetSpellInfo(idOrName)
+```lua
+-- a patched version of the Blizzard API GetSpellInfo() function
+-- adjusts cast time of hunter casts based on current Epoch server weirdness
+function lib:GetSpellInfo(idOrName)
+```
+
+Hopefully this function will get removed if/when Project Epoch figures out the bug in the tooltip vs actual cast times of hunter spells.
