@@ -8,7 +8,7 @@ There is also some Project Epoch specific workarounds that can hopefully be remo
 This addon does not provide any UI however. You need something else for that, eg. WeakAuras.
 
 # Installation
-Download from the green Code button top right of the github page with the Download ZIP option. Unzip to your WoW clients Interface\AddOns folder and rename the folder to LibDullasSwingTimer. Then follow one or more of the directions below.
+Download the newest release as a ZIP from the Releases link on the right of the github page. Unzip to your WoW clients Interface\AddOns folder and rename the folder to LibDullasSwingTimer. Then follow one or more of the directions below.
 
 ## WeakAuras Quick Start
 For a super quick start just import this WeakAuras string:
