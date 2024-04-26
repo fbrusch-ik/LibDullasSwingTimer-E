@@ -64,6 +64,9 @@ frame:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
 frame:RegisterEvent("UNIT_SPELLCAST_STOP")
 frame:RegisterEvent("UNIT_SPELLCAST_START")
 
+frame:RegisterEvent("UNIT_SPELLCAST_FAILED_QUIET")
+frame:RegisterEvent("UI_ERROR_MESSAGE")
+
 local events = {}
 
 local OnEvent
@@ -190,7 +193,7 @@ function lib:WeakAurasAutoShotCast(now)
 		return 0, math.huge
 	end
 	if failWhen then
-		-- freeze at zero progress after auto shot fail (line of sight)
+		-- freeze at zero progress after auto shot fail (line of sight or player facing)
 		return autoEnd - autoStart, now + autoEnd - autoStart
 	end
 	if moveWhen then
@@ -252,12 +255,14 @@ end
 function events:START_AUTOREPEAT_SPELL(...)
 	local now = GetTime()
 	isAuto = true
+	failWhen = nil
 	StartAutoShot(now)
 end
 
 function events:STOP_AUTOREPEAT_SPELL(...)
 	local now = GetTime()
 	isAuto = false
+	failWhen = nil
 	StopAutoShot(now)
 end
 
@@ -269,7 +274,7 @@ end
 function events:PLAYER_STOPPED_MOVING()
 	local now = GetTime()
 	moveWhen = nil
-	if isAuto and autoStart <= now then
+	if isAuto and autoStart <= now and not failWhen then
 		log(string.format("Movement clipped Auto Shot by %.2f sec",now - autoStart))
 		clipped = clipped + now - autoStart
 		StartAutoShot(now)
@@ -282,7 +287,7 @@ function events:UNIT_SPELLCAST_SENT(unit, spell, ...)
 	if spell == autoShot then
 		if failWhen then
 			-- fail occurs at end of auto cast, so clip is full auto cast plus however long it's been since the fail
-			log(string.format("Line-of-sight clipped Auto Shot by %.2f sec",autoCast + now - failWhen - latency))
+			log(string.format("Player facing clipped Auto Shot by %.2f sec",autoCast + now - failWhen - latency))
 			clipped = clipped + autoCast + now - failWhen - latency
 			failWhen = nil
 		end
@@ -314,8 +319,8 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 			-- this case only happens when line-of-sight has been blocked and then regained
 			-- fail occurs at end of auto cast, so clip is full auto cast plus however long it's been since the fail
 			-- however in this case the success also occurs at the end so the auto cast duration can be ignored
-			log(string.format("Line-of-sight clipped Auto Shot by %.2f sec",autoCast + now - failWhen))
-			clipped = clipped + now - failWhen			
+			log(string.format("Line of sight clipped Auto Shot by %.2f sec",now - failWhen))
+			clipped = clipped + now - failWhen
 			failWhen = nil
 		end
 		debug(spell,string.format("%.2f expected %.2f",now - autoStart,autoEnd - autoStart))
@@ -334,7 +339,7 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 	if not castStarted then
 		castStarted = castSent
 	end
-	log(spell,string.format("%.2f",now - castStarted))
+	log(spell,string.format("%.2f sec",now - castStarted))
 	if isAuto and autoStart < now then
 		log(spell,string.format("clipped Auto Shot by %.2f sec",now - autoStart))
 		clipped = clipped + now - autoStart
@@ -372,11 +377,13 @@ end
 function events:UNIT_SPELLCAST_FAILED(unit, spell, ...)
 	if unit ~= "player" then return end
 	local now = GetTime()
-	if spell == autoShot then
-		failWhen = now
-		return
-	end
 	if isAuto then
+		if spell == autoShot then
+			if not failWhen then
+				failWhen = now
+			end
+			return
+		end
 		StartAutoShot(now)
 	end
 	casting = nil
