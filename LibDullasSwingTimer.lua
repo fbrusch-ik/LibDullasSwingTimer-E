@@ -364,6 +364,7 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 		autoStart = autoEnd - autoCast
 		lastClipped = clipped
 		clipped = 0
+		isAuto = true
 		return
 	end
 	if spell ~= casting then 
