@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibDullasSwingTimer", 5
+local MAJOR, MINOR = "LibDullasSwingTimer", 6
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then
 	return
@@ -454,7 +454,8 @@ end
 frame:SetScript("OnUpdate", function(...)
 	local now = GetTime()
 	local newX, newY = GetPlayerMapPosition("player")
-	if newX == lastX and newY == lastY then
+	local falling = IsFalling()
+	if not falling and newX == lastX and newY == lastY then
 		if isMoving then
 			OnEvent(0,"PLAYER_STOPPED_MOVING")
 		end
