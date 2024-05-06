@@ -27,6 +27,7 @@ LDST = lib
 -- logging functions
 lib.debug = false
 lib.log = false
+lib.trace = false
 local timeStart = GetTime()
 function TimeStamp()
 	timeStart = timeStart or GetTime()
@@ -44,6 +45,10 @@ end
 local log = function(...)
 	if not lib.log then return end
 	print("\124c"..RAID_CLASS_COLORS.HUNTER.colorStr.."[LDST]",TimeStamp(),...)
+end
+local trace = function(...)
+	if not lib.trace then return end
+	print("\124cffcccccc[LDST]","TRACE",TimeStamp().."\124cffffffff",...)
 end
 local error = function(...)
 	print("\124cffff0000[LDST]","ERROR",TimeStamp(),...)
@@ -65,16 +70,6 @@ frame:RegisterEvent("UNIT_SPELLCAST_STOP")
 frame:RegisterEvent("UNIT_SPELLCAST_START")
 
 local events = {}
-
-local OnEvent
-function OnEvent(_,event,...)
-	debug(event,...)
-	if events[event] then
-		events[event](events,...)
-	end
-end
-
-frame:SetScript("OnEvent", OnEvent)
 
 -- track player moving or not
 local lastX, lastY = GetPlayerMapPosition("player")
@@ -110,6 +105,26 @@ local ignoreNextSent = 0
 local ignoreFail = false
 local clipped = 0 -- cumulative clipping in seconds of current auto shot cast
 local lastClipped = 0 -- total clipping of last auto shot cast
+
+-- generic event dispatcher with debug and trace options
+local OnEvent
+function OnEvent(_,event,...)
+	debug(event,...)
+	if events[event] then
+		events[event](events,...)
+	end
+	if lib.trace then
+		local now = GetTime()
+		local s = "off "
+		if isAuto then s = "auto " end
+		if lastAutoStart then s = s..string.format("%.3f, ",lastAutoStart-now) else s = s.."nil, " end
+		if lastAutoEnd then s = s..string.format("%.3f, ",lastAutoEnd-now) else s = s.."nil, " end
+		if autoStart then s = s..string.format("%.3f, ",autoStart-now) else s = s.."nil, " end
+		if autoEnd then s = s..string.format("%.3f",autoEnd-now) else s = s.."nil" end
+		trace("<"..s..">")
+	end
+end
+frame:SetScript("OnEvent", OnEvent)
 
 -- helper: returns speed after applying a given haste, optionally scaled by a given haste contribution
 local ApplyHaste
@@ -267,12 +282,12 @@ function events:START_AUTOREPEAT_SPELL(...)
 		log(string.format("Target change clipped %.2f sec", now - autoStart))
 		clipped = clipped + now - autoStart
 		ignoreNextSent = now + 0.005
-		autoStart = nil
-		autoEnd = nil
-	elseif stoppedWhen and now - stoppedWhen < 0.1 then
-		debug("Restarted outside auto shot")
-		autoStart = nil
-		autoEnd = nil
+		autoStart = now
+		autoEnd = autoStart + autoCast
+	-- elseif stoppedWhen and now - stoppedWhen < 0.1 then
+	-- 	debug("Restarted outside auto shot")
+	-- 	autoStart = nil
+	-- 	autoEnd = nil
 	else
 		autoStart = nil
 		autoEnd = nil
@@ -419,7 +434,7 @@ function events:UNIT_SPELLCAST_FAILED(unit, spell, ...)
 			end
 			return
 		end
-		StartAutoShot(now)
+		-- StartAutoShot(now)
 	end
 	casting = nil
 	castSent = nil
