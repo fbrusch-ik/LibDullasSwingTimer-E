@@ -68,7 +68,7 @@ end
 
 This sets the Auto Shot cooldown bar up to follow LibDullasSwingTimer notion of auto shot cooldown.
 
-For more advanced setup take a look at the above WeakAuras import and specifically look in the *Animations | Main | Fade | Custom Function* box. The `LDST:WeakAurasUpdateSpell()` function can be found at the bottom of [`LibDullasSwingTimer.lua`](https://github.com/uffefl/LibDullasSwingTimer/blob/main/LibDullasSwingTimer.lua).
+For more advanced setup take a look at the above WeakAuras import and specifically look in the *Animations | Main | Fade | Custom Function* box. The `LDST:WeakAurasUpdateSpell()` function can be found at the bottom of [`LibDullasSwingTimer.lua`](https://github.com/uffefl/LibDullasSwingTimer/blob/main/LibDullasSwingTimer.lua#L487).
 
 # API
 To use this addon to it's fullest potential the full API is listed here. This includes the functions intended to use from within WeakAuras, but other addons that offer LUA integration can also access these.
