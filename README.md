@@ -7,7 +7,7 @@ It can also report exactly how much Auto Shot is clipped by player actions like 
 
 There is also some Project Epoch specific workarounds that can hopefully be removed when the bugs are fixed on the server side.
 
-This addon does not provide any UI however. You need something else for that, eg. WeakAuras.
+This addon does not provide any UI however. You need something else for that, eg. [WeakAuras](https://felbite.com/addon/4703-weakauras/).
 
 # Installation
 Download the newest release as a ZIP from the [GitHub Releases](https://github.com/uffefl/LibDullasSwingTimer/releases) page. Unzip to your WoW clients `Interface\AddOns` folder and rename the folder to `LibDullasSwingTimer`. Then follow one or more of the directions below.
