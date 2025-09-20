@@ -390,7 +390,7 @@ function events:UNIT_SPELLCAST_SUCCEEDED(unit, spell, ...)
 		castStarted = castSent
 	end
 	log(spell,string.format("%.2f sec (latency %d ms)",now - castStarted,latency*1000))
-	if isAuto and autoStart < now then
+	if isAuto and (autoStart or math.huge) < now then
 		log(spell,string.format("clipped %s by %.2f sec",autoShot,now - autoStart))
 		clipped = clipped + now - autoStart
 	end
