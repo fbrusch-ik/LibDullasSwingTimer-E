@@ -1,0 +1,9 @@
+# Exclude from release archives
+.github/            export-ignore
+.gitignore          export-ignore
+.gitattributes      export-ignore
+/docs/              export-ignore
+/tests/             export-ignore
+*.psd               export-ignore
+*.xcf               export-ignore
+*.blend             export-ignore

@@ -1,0 +1,45 @@
+name: Release (LibDullasSwingTimer folder)
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ensure tags are available
+
+      - name: Show ref
+        run: |
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-${{ github.ref_name }}}"
+          echo "GITHUB_SHA=${GITHUB_SHA}"
+
+      # Build archives with a custom top-level folder name
+      # Uses export-ignore rules if you add them to .gitattributes (see below)
+      - name: Build archives
+        run: |
+          VERSION="${GITHUB_REF_NAME:-${{ github.ref_name }}}"
+          PREFIX="LibDullasSwingTimer/"
+
+          git archive --worktree-attributes --format=zip   --prefix="$PREFIX" -o "LibDullasSwingTimer-${VERSION}.zip"   HEAD
+          git archive --worktree-attributes --format=tar   --prefix="$PREFIX" HEAD | gzip > "LibDullasSwingTimer-${VERSION}.tar.gz"
+
+          ls -lh
+
+      - name: Create GitHub Release & upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          files: |
+            LibDullasSwingTimer-${{ github.ref_name }}.zip
+            LibDullasSwingTimer-${{ github.ref_name }}.tar.gz
