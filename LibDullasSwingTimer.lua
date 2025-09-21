@@ -194,7 +194,7 @@ end
 function lib:IsCastingAutoShot(now)
 	if not isAuto or casting ~= nil then return false end
 	now = now or GetTime()
-	return autoStart ~= nil and autoStart <= now
+	return autoStart ~= nil and (autoStart or math.huge) <= now
 end
 
 -- returns true if auto shot is on cooldown
@@ -317,7 +317,7 @@ end
 function events:PLAYER_STOPPED_MOVING()
 	local now = GetTime()
 	moveWhen = nil
-	if isAuto and autoStart <= now and not failWhen then
+	if isAuto and (autoStart or math.huge) <= now and not failWhen then
 		log(string.format("Movement clipped %s by %.2f sec",autoShot,now - autoStart))
 		clipped = clipped + now - autoStart
 		StartAutoShot(now)
